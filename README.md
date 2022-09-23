@@ -21,6 +21,7 @@ Network requests are grouped into a Moya-styled `TargetGroup`. A normal implemen
 ```swift
 enum SomeTargetGroup {
     case someCase(someParameter: Int, anotherParameter: Int)
+    case anotherCase(someMessage: String)
 }
 
 extension SomeTargetGroup: TargetGroup {
@@ -43,6 +44,14 @@ extension SomeTargetGroup: TargetGroup {
                     "anotherParameter": anotherParameter
                 ]
             )
+        case let .anotherCase(someMessage):
+            return LynnTask(
+                method: .post,
+                body: HTTPBody(
+                    content: ["someMessage": someMessage],
+                    mode: .json
+                )
+            )
         }
     }
 
@@ -64,7 +73,7 @@ extension SomeTargetGroup: TargetGroup {
 
 A `LynnHandler` takes a `LynnCore` and a `LynnStorageManager` (if caching is needed). You can either use the `LynnURLSession` implementation of `Core`, or make your own `LynnCore`. Using `LynnURLSession`:
 
-```swift=
+```swift
 import Lynn
 import LynnURLSession
 let networkHandler = LynnHandler()
@@ -72,7 +81,7 @@ let networkHandler = LynnHandler()
 
 If you want to use the cache system, provide a storage manager here:
 
-```swift=
+```swift
 import Lynn
 import LynnURLSession
 import LynnUserDefaultsStorageManager
@@ -83,7 +92,7 @@ let networkHandler = LynnHandler(
 
 To use any custom core or storage manager, implement the `LynnCore` or `LynnStorageManager` protocols and provide them to the initialiser.
 
-```swift=
+```swift
 import Lynn
 let networkHandler = LynnHandler(
     networkCore: MyLynnCore(),
@@ -93,7 +102,7 @@ let networkHandler = LynnHandler(
 
 By default, the `LynnHandler` would retry up to 3 time if the request fails, you can set this number in the initialiser, too:
 
-```swift=
+```swift
 let networkHandler = LynnHandler(
     storageManager: UserDefaultsItemStroageManager(),
     maxRetries: 5
@@ -112,7 +121,7 @@ There are four main APIs provided:
 
 1. `request` using callback style returning data
 
-```swift=
+```swift
 networkHandler.request(
     targetGroup: YourTargetGroup.target(parameter: 1),
     getValidUntil: { data in
@@ -129,7 +138,7 @@ networkHandler.request(
 
 2. `request` using callback style returning model
 
-```swift=
+```swift
 networkHandler.request(
     targetGroup: YourTargetGroup.target(parameter: 1),
     model: YourDecodableModel.self,
@@ -148,7 +157,7 @@ networkHandler.request(
 
 3. `request` using async/await style returning data (macOS 10.15+, iOS 13+)
 
-```swift=
+```swift
 Task {
     do {
         let data = try await networkHandler
@@ -167,7 +176,7 @@ Task {
 
 4. `request` using async/await style returning model (macOS 10.15+, iOS 13+)
 
-```swift=
+```swift
 Task {
     do {
         let model = try await networkHandler
