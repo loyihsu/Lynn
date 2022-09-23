@@ -12,4 +12,9 @@ public struct HTTPBody {
 
     public let content: [String: Any]
     public let mode: Mode
+
+    public init(content: [String : Any], mode: Mode) {
+        self.content = content
+        self.mode = mode
+    }
 }
