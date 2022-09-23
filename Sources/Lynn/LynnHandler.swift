@@ -102,7 +102,7 @@ public class LynnHandler<Core: LynnCore> {
         targetGroup: Group
     ) throws -> Data? {
         switch responseMode {
-        case .alwaysLive:
+        case .alwaysLive, .alwaysFail:
             return nil
         case .normal, .sample:
             if let storedData = try fetchFromStorageIfNeeded(targetGroup: targetGroup) {
@@ -131,6 +131,8 @@ public class LynnHandler<Core: LynnCore> {
             } else {
                 onError(DebugError.noSampleData)
             }
+        case .alwaysFail:
+            onError(DebugError.failed)
         }
     }
 
@@ -254,17 +256,21 @@ extension LynnHandler {
 extension LynnHandler {
     public enum ResponseMode {
         case alwaysLive
+        case alwaysFail
         case normal
         case sample
     }
 
     public enum DebugError: LocalizedError {
         case noSampleData
+        case failed
 
         public var errorDescription: String? {
             switch self {
             case .noSampleData:
                 return "No sample data provided while using .sample response mode."
+            case .failed:
+                return "Your mode is set to always fail. This mode is designed to test what happens when your request failed."
             }
         }
     }
