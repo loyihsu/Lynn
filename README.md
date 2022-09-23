@@ -115,6 +115,15 @@ You can also specify the response mode here, there are multiple response modes d
 * `.alwaysLive` would skip the cache and request from the live server immediately.
 * `.sample` would request from the cache first if a storage manager is provided and if no valid cache is found, it will return and save the `sampleData` specified in the `TargetGroup` into the cache.
 
+Just specify any response mode from above by:
+
+```swift
+let networkHandler = LynnHandler(
+    storageManager: UserDefaultsItemStroageManager(),
+    responseMode: .sample
+)
+```
+
 ## Sending Requests
 
 There are four main APIs provided:
