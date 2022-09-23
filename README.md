@@ -1,5 +1,7 @@
 # Lynn
 
+![Overview](https://i.imgur.com/zlB49UL.png)
+
 Lynn is a [Moya][1]-inspired flexible network abstraction layer. With the core and storage manager protocol, it can be based on any network packages and storage technology.
 
 Default implementations of core using `URLSession` and storage manager using `UserDefaults` are provided.
