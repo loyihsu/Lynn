@@ -206,6 +206,29 @@ Task {
 }
 ```
 
+## Cache
+
+To use the cache system, add you would need to provide:
+
+1. A storage manager instance
+2. `getValidUntil` when making a request request
+
+A storage manager can implement either one of `LynnItemStorageManager` or `LynnListStorageManager`, depending on whether you want to store an item or a list of items. Implementations for either an item or a list using `UserDefaults` are provided:
+
+```swift
+import LynnUserDefaultsStorageManager
+let networkHandler = LynnHandler(
+    storageManager: UserDefaultsItemStorageManager()
+)
+```
+
+```swift
+import LynnUserDefaultsStorageManager
+let networkHandler = LynnHandler(
+    storageManager: UserDefaultsListStorageManager()
+)
+```
+
 ## License
 
 [MIT][2]
