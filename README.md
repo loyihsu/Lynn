@@ -12,7 +12,7 @@ Default implementations of core using `URLSession` and storage manager using `Us
 
 You can install it through SPM:
 
-```swift=
+```swift
 .package(url: "https://github.com/loyihsu/Lynn", branch: "main"),
 ```
 
@@ -116,6 +116,7 @@ You can also specify the response mode here, there are multiple response modes d
 * `.normal` would request from the cache first if a storage manager is provided and if no valid cache is found, it will request from the url specified.
 * `.alwaysLive` would skip the cache and request from the live server immediately.
 * `.sample` would request from the cache first if a storage manager is provided and if no valid cache is found, it will return and save the `sampleData` specified in the `TargetGroup` into the cache.
+* `.alwaysFail` would skip the cache and immediately fail to simulate a situation when request failed.
 
 Just specify any response mode from above by:
 
