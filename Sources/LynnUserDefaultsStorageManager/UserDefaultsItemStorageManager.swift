@@ -1,5 +1,5 @@
 //
-//  UserDefaultsStorageManager.swift
+//  UserDefaultsItemStorageManager.swift
 //
 //
 //  Created by Yu-Sung Loyi Hsu on 2022/9/16.
@@ -8,7 +8,7 @@
 import Foundation
 import Lynn
 
-public final class UserDefaultsItemStroageManager: LynnItemStorageManager {
+public final class UserDefaultsItemStorageManager: LynnItemStorageManager {
     private let userDefaults: UserDefaults
     private let jsonEncoder = JSONEncoder()
     private let jsonDecoder = JSONDecoder()
