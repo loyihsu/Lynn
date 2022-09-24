@@ -59,3 +59,23 @@ public struct LynnCoreError: Error {
         self.error = error
     }
 }
+
+public struct LynnCoreDecodedResponse<D: Decodable> {
+    private var _header: Data?
+
+    public var statusCode: Int
+    public var body: D
+
+    public var header: [String: Any]? {
+        guard let _header = _header else { return nil }
+        return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
+    }
+
+    public init(statusCode: Int, header: [String: Any]?, body: D) {
+        self.statusCode = statusCode
+        if let header = header {
+            self._header = try? JSONSerialization.data(withJSONObject: header, options: [])
+        }
+        self.body = body
+    }
+}

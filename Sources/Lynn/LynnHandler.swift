@@ -15,6 +15,7 @@ public class LynnHandler<Core: LynnCore> {
     private let storageManager: LynnStorageManager?
     private let maxRetries: Int
     private let responseMode: ResponseMode
+    private let jsonEncoder = JSONEncoder()
     private let jsonDecoder = JSONDecoder()
 
     // MARK: - Init
@@ -38,13 +39,21 @@ public class LynnHandler<Core: LynnCore> {
         model: Model.Type,
         keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase,
         getValidUntil: ((Model) -> Date)? = nil,
-        callback: @escaping (Model) -> Void,
+        callback: @escaping (LynnCoreDecodedResponse<Model>) -> Void,
         onError: @escaping (Error) -> Void
     ) throws {
         if let storedData = try cacheRoutine(targetGroup: targetGroup) {
             do {
                 jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
-                callback(try jsonDecoder.decode(model, from: storedData))
+                let decodedModel = try jsonDecoder.decode(model, from: storedData.body)
+
+                callback(
+                    LynnCoreDecodedResponse(
+                        statusCode: storedData.statusCode,
+                        header: storedData.header,
+                        body: decodedModel
+                    )
+                )
             } catch {
                 onError(error)
             }
@@ -60,9 +69,15 @@ public class LynnHandler<Core: LynnCore> {
                     self.jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
                     let decoded = try self.jsonDecoder.decode(model, from: response.body)
                     if let validUntil = getValidUntil?(decoded) {
-                        self.storeIfNeeded(targetGroup: targetGroup, data: response.body, validUntil: validUntil)
+                        self.storeIfNeeded(targetGroup: targetGroup, response: response, validUntil: validUntil)
                     }
-                    callback(decoded)
+                    callback(
+                        LynnCoreDecodedResponse(
+                            statusCode: response.statusCode,
+                            header: response.header,
+                            body: decoded
+                        )
+                    )
                 } catch {
                     onError(error)
                 }
@@ -77,9 +92,8 @@ public class LynnHandler<Core: LynnCore> {
         callback: @escaping (LynnCoreResponse) -> Void,
         onError: @escaping (LynnCoreError) -> Void
     ) throws {
-        if let cached = try cacheRoutine(targetGroup: targetGroup),
-           let coreResponse = try? jsonDecoder.decode(LynnCoreResponse.self, from: cached) {
-            callback(coreResponse)
+        if let cached = try cacheRoutine(targetGroup: targetGroup) {
+            callback(cached)
         }
 
         let target = targetGroup.target
@@ -87,7 +101,7 @@ public class LynnHandler<Core: LynnCore> {
             target: target,
             callback: { [weak self] lynnCoreData in
                 if let validUntil = getValidUntil?(lynnCoreData.body) {
-                    self?.storeIfNeeded(targetGroup: targetGroup, data: lynnCoreData.body, validUntil: validUntil)
+                    self?.storeIfNeeded(targetGroup: targetGroup, response: lynnCoreData, validUntil: validUntil)
                 }
                 callback(lynnCoreData)
             },
@@ -101,13 +115,15 @@ public class LynnHandler<Core: LynnCore> {
 
     private func cacheRoutine<Group: TargetGroup>(
         targetGroup: Group
-    ) throws -> Data? {
+    ) throws -> LynnCoreResponse? {
         switch responseMode {
         case .alwaysLive:
             return nil
         case .normal, .sample:
             if let storedData = try fetchFromStorageIfNeeded(targetGroup: targetGroup) {
-                return storedData
+                jsonDecoder.keyDecodingStrategy = .useDefaultKeys
+                let decodedData = try jsonDecoder.decode(LynnCoreResponse.self, from: storedData)
+                return decodedData
             } else {
                 return nil
             }
@@ -169,11 +185,12 @@ public class LynnHandler<Core: LynnCore> {
 
     // MARK: Cache
 
-    private func storeIfNeeded(targetGroup: TargetGroup, data: Data, validUntil: Date) {
-        guard let storageManager = storageManager else { return }
+    private func storeIfNeeded(targetGroup: TargetGroup, response: LynnCoreResponse, validUntil: Date) {
+        guard let storageManager = storageManager,
+              let encodedResponse = try? jsonEncoder.encode(response) else { return }
         let storageData = LynnStorageData(
             validUntil: validUntil,
-            data: data
+            data: encodedResponse
         )
         storageManager.save(key: targetGroup.storageKey, value: storageData)
     }
@@ -206,7 +223,7 @@ extension LynnHandler {
         model: Model.Type,
         keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase,
         getValidUntil: ((Model) -> Date)? = nil
-    ) async throws -> Model {
+    ) async throws -> LynnCoreDecodedResponse<Model> {
         try await withCheckedThrowingContinuation { continuation in
             do {
                 try request(
@@ -214,8 +231,8 @@ extension LynnHandler {
                     model: model,
                     keyDecodingStrategy: keyDecodingStrategy,
                     getValidUntil: getValidUntil,
-                    callback: { model in
-                        continuation.resume(returning: model)
+                    callback: { response in
+                        continuation.resume(returning: response)
                     },
                     onError: { error in
                         continuation.resume(throwing: error)
