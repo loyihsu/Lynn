@@ -61,20 +61,20 @@ public class URLSessionNetworkCore: LynnCore {
         }
 
         let task = session.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
-            guard let response = response as? HTTPURLResponse else { return }
+            let response = response as? HTTPURLResponse
             if let error = error {
                 onError(
                     LynnCoreError(
-                        statusCode: response.statusCode,
-                        header: response.allHeaderFields as? [String: Any],
+                        statusCode: response?.statusCode,
+                        header: response?.allHeaderFields as? [String: Any],
                         error: error
                     )
                 )
             } else if let data = data {
                 callback(
                     LynnCoreResponse(
-                        statusCode: response.statusCode,
-                        header: response.allHeaderFields as? [String: Any],
+                        statusCode: response?.statusCode,
+                        header: response?.allHeaderFields as? [String: Any],
                         body: data
                     )
                 )

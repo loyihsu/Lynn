@@ -23,7 +23,7 @@ public protocol LynnCore {
 public struct LynnCoreResponse: Codable {
     private var _header: Data?
 
-    public var statusCode: Int
+    public var statusCode: Int?
     public var body: Data
 
     public var header: [String: Any]? {
@@ -31,7 +31,7 @@ public struct LynnCoreResponse: Codable {
         return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
     }
 
-    public init(statusCode: Int, header: [String: Any]?, body: Data) {
+    public init(statusCode: Int?, header: [String: Any]?, body: Data) {
         self.statusCode = statusCode
         if let header = header {
             self._header = try? JSONSerialization.data(withJSONObject: header, options: [])
@@ -43,7 +43,7 @@ public struct LynnCoreResponse: Codable {
 public struct LynnCoreError: Error {
     private var _header: Data?
 
-    public var statusCode: Int
+    public var statusCode: Int?
     public var error: Error
 
     public var header: [String: Any]? {
@@ -51,7 +51,7 @@ public struct LynnCoreError: Error {
         return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
     }
 
-    public init(statusCode: Int, header: [String: Any]?, error: Error) {
+    public init(statusCode: Int?, header: [String: Any]?, error: Error) {
         self.statusCode = statusCode
         if let header = header {
             self._header = try? JSONSerialization.data(withJSONObject: header, options: [])
@@ -63,7 +63,7 @@ public struct LynnCoreError: Error {
 public struct LynnCoreDecodedResponse<D: Decodable> {
     private var _header: Data?
 
-    public var statusCode: Int
+    public var statusCode: Int?
     public var body: D
 
     public var header: [String: Any]? {
@@ -71,7 +71,7 @@ public struct LynnCoreDecodedResponse<D: Decodable> {
         return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
     }
 
-    public init(statusCode: Int, header: [String: Any]?, body: D) {
+    public init(statusCode: Int?, header: [String: Any]?, body: D) {
         self.statusCode = statusCode
         if let header = header {
             self._header = try? JSONSerialization.data(withJSONObject: header, options: [])
