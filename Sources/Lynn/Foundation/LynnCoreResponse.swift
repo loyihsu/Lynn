@@ -58,7 +58,7 @@ public struct LynnCoreHeader: Codable, CustomStringConvertible {
         return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
     }
 
-    subscript(dynamicMember key: String) -> Any? {
+    public subscript(dynamicMember key: String) -> Any? {
         return dictionary?[key]
     }
 
