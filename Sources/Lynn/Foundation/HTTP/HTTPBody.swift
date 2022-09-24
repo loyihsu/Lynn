@@ -7,7 +7,7 @@
 
 public struct HTTPBody {
     public enum Mode {
-        case json
+        case json, urlEncoded
     }
 
     public let content: [String: Any]
