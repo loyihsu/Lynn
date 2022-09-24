@@ -49,7 +49,6 @@ public struct LynnCoreError: Error {
     }
 }
 
-@dynamicMemberLookup
 public struct LynnCoreHeader: Codable, CustomStringConvertible {
     private var _header: Data?
 
@@ -58,7 +57,7 @@ public struct LynnCoreHeader: Codable, CustomStringConvertible {
         return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
     }
 
-    public subscript(dynamicMember key: String) -> Any? {
+    public subscript(_ key: String) -> Any? {
         return dictionary?[key]
     }
 
