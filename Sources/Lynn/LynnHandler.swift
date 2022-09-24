@@ -54,13 +54,13 @@ public class LynnHandler<Core: LynnCore> {
         let target = targetGroup.target
         requestRoutine(
             target: target,
-            callback: { [weak self] data in
+            callback: { [weak self] response in
                 guard let self = self else { return }
                 do {
                     self.jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
-                    let decoded = try self.jsonDecoder.decode(model, from: data)
+                    let decoded = try self.jsonDecoder.decode(model, from: response.body)
                     if let validUntil = getValidUntil?(decoded) {
-                        self.storeIfNeeded(targetGroup: targetGroup, data: data, validUntil: validUntil)
+                        self.storeIfNeeded(targetGroup: targetGroup, data: response.body, validUntil: validUntil)
                     }
                     callback(decoded)
                 } catch {
@@ -74,21 +74,22 @@ public class LynnHandler<Core: LynnCore> {
     public func request<Group: TargetGroup>(
         targetGroup: Group,
         getValidUntil: ((Data) -> Date)? = nil,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void
     ) throws {
-        if let cached = try cacheRoutine(targetGroup: targetGroup) {
-            callback(cached)
+        if let cached = try cacheRoutine(targetGroup: targetGroup),
+           let coreResponse = try? jsonDecoder.decode(LynnCoreResponse.self, from: cached) {
+            callback(coreResponse)
         }
 
         let target = targetGroup.target
         requestRoutine(
             target: target,
-            callback: { [weak self] data in
-                if let validUntil = getValidUntil?(data) {
-                    self?.storeIfNeeded(targetGroup: targetGroup, data: data, validUntil: validUntil)
+            callback: { [weak self] lynnCoreData in
+                if let validUntil = getValidUntil?(lynnCoreData.body) {
+                    self?.storeIfNeeded(targetGroup: targetGroup, data: lynnCoreData.body, validUntil: validUntil)
                 }
-                callback(data)
+                callback(lynnCoreData)
             },
             onError: onError
         )
@@ -115,8 +116,8 @@ public class LynnHandler<Core: LynnCore> {
 
     private func requestRoutine(
         target: LynnTarget,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void
     ) {
         switch responseMode {
         case .alwaysLive, .normal:
@@ -127,9 +128,11 @@ public class LynnHandler<Core: LynnCore> {
             )
         case .sample:
             if let sampleData = target.sampleData {
-                callback(sampleData)
+                callback(
+                    LynnCoreResponse(statusCode: 200, header: [:], body: sampleData)
+                )
             } else {
-                onError(DebugError.noSampleData)
+                onError(LynnCoreError(statusCode: 404, header: [:], error: DebugError.noSampleData))
             }
         }
     }
@@ -138,9 +141,9 @@ public class LynnHandler<Core: LynnCore> {
 
     private func sendRequest(
         to target: LynnTarget,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void,
-        error: Error? = nil,
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void,
+        error: LynnCoreError? = nil,
         currentRetry: Int = 0
     ) {
         guard currentRetry < maxRetries else {
@@ -228,7 +231,7 @@ extension LynnHandler {
     public func request<Group: TargetGroup>(
         targetGroup: Group,
         getValidUntil: ((Data) -> Date)? = nil
-    ) async throws -> Data {
+    ) async throws -> LynnCoreResponse {
         try await withCheckedThrowingContinuation { continuation in
             do {
                 try request(

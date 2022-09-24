@@ -14,7 +14,7 @@ public class URLSessionNetworkCore: LynnCore {
     @available(macOS 10.15, iOS 13.0, *)
     public func sendRequest(
         to target: LynnTarget
-    ) async throws -> Data {
+    ) async throws -> LynnCoreResponse {
         try await withCheckedThrowingContinuation { continuation in
             sendRequest(
                 to: target,
@@ -30,8 +30,8 @@ public class URLSessionNetworkCore: LynnCore {
 
     public func sendRequest(
         to target: LynnTarget,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void
     ) {
         let sessionConfig = URLSessionConfiguration.default
         let session = URLSession(configuration: sessionConfig, delegate: nil, delegateQueue: nil)
@@ -60,11 +60,24 @@ public class URLSessionNetworkCore: LynnCore {
             request.addValue($1, forHTTPHeaderField: $0)
         }
 
-        let task = session.dataTask(with: request) { (data: Data?, _: URLResponse?, error: Error?) in
+        let task = session.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
+            guard let response = response as? HTTPURLResponse else { return }
             if let error = error {
-                onError(error)
+                onError(
+                    LynnCoreError(
+                        statusCode: response.statusCode,
+                        header: response.allHeaderFields as? [String: Any],
+                        error: error
+                    )
+                )
             } else if let data = data {
-                callback(data)
+                callback(
+                    LynnCoreResponse(
+                        statusCode: response.statusCode,
+                        header: response.allHeaderFields as? [String: Any],
+                        body: data
+                    )
+                )
             }
         }
         task.resume()
