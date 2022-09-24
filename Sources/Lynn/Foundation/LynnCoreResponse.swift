@@ -50,7 +50,7 @@ public struct LynnCoreError: Error {
 }
 
 @dynamicMemberLookup
-public struct LynnCoreHeader: Codable {
+public struct LynnCoreHeader: Codable, CustomStringConvertible {
     private var _header: Data?
 
     var dictionary: [String: Any]? {
@@ -66,5 +66,9 @@ public struct LynnCoreHeader: Codable {
         if let dictionary = dictionary {
             self._header = try? JSONSerialization.data(withJSONObject: dictionary, options: [])
         }
+    }
+
+    public var description: String {
+        return dictionary?.description ?? ""
     }
 }
