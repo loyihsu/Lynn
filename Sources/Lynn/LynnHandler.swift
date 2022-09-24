@@ -42,11 +42,9 @@ public class LynnHandler<Core: LynnCore> {
         callback: @escaping (LynnCoreDecodedResponse<Model>) -> Void,
         onError: @escaping (Error) -> Void
     ) {
-        do {
-            if let storedData = try cacheRoutine(targetGroup: targetGroup) {
-                jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
-                let decodedModel = try jsonDecoder.decode(model, from: storedData.body)
-
+        if let storedData = try? cacheRoutine(targetGroup: targetGroup) {
+            jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
+            if let decodedModel = try? jsonDecoder.decode(model, from: storedData.body) {
                 callback(
                     LynnCoreDecodedResponse(
                         statusCode: storedData.statusCode,
@@ -54,11 +52,8 @@ public class LynnHandler<Core: LynnCore> {
                         body: decodedModel
                     )
                 )
-
                 return
             }
-        } catch {
-            onError(error)
         }
 
         let target = targetGroup.target
@@ -92,8 +87,8 @@ public class LynnHandler<Core: LynnCore> {
         getValidUntil: ((Data) -> Date)? = nil,
         callback: @escaping (LynnCoreResponse) -> Void,
         onError: @escaping (LynnCoreError) -> Void
-    ) throws {
-        if let cached = try cacheRoutine(targetGroup: targetGroup) {
+    ) {
+        if let cached = try? cacheRoutine(targetGroup: targetGroup) {
             callback(cached)
         }
 
