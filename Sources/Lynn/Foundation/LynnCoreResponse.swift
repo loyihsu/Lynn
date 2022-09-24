@@ -1,6 +1,6 @@
 //
 //  LynnCoreResponse.swift
-//  
+//
 //
 //  Created by Yu-Sung Loyi Hsu on 2022/9/24.
 //

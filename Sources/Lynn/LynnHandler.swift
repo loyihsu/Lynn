@@ -8,7 +8,6 @@
 import Foundation
 
 public class LynnHandler<Core: LynnCore> {
-
     // MARK: - Properties
 
     private let networkCore: Core
@@ -212,9 +211,9 @@ public class LynnHandler<Core: LynnCore> {
 
 // MARK: - Async/Await API
 
-extension LynnHandler {
+public extension LynnHandler {
     @available(macOS 10.15, iOS 13.0, *)
-    public func request<Group: TargetGroup, Model: Decodable>(
+    func request<Group: TargetGroup, Model: Decodable>(
         targetGroup: Group,
         model: Model.Type,
         keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase,
@@ -241,7 +240,7 @@ extension LynnHandler {
     }
 
     @available(macOS 10.15, iOS 13.0, *)
-    public func request<Group: TargetGroup>(
+    func request<Group: TargetGroup>(
         targetGroup: Group,
         getValidUntil: ((Data) -> Date)? = nil
     ) async throws -> LynnCoreResponse {
@@ -262,19 +261,18 @@ extension LynnHandler {
             }
         }
     }
-
 }
 
 // MARK: - Responses
 
-extension LynnHandler {
-    public enum ResponseMode {
+public extension LynnHandler {
+    enum ResponseMode {
         case alwaysLive
         case normal
         case sample
     }
 
-    public enum DebugError: LocalizedError {
+    enum DebugError: LocalizedError {
         case noSampleData
 
         public var errorDescription: String? {
