@@ -131,7 +131,7 @@ let networkHandler = LynnHandler(
 
 There are four main APIs provided:
 
-1. `request` using callback style returning data
+1. `request` using callback style returning data (`LynnCoreResponse`)
 
 ```swift
 networkHandler.request(
@@ -139,8 +139,8 @@ networkHandler.request(
     getValidUntil: { data in
         // return your cache invalidation time here
     },
-    callback: { data in
-        // do something with the data        
+    callback: { response in
+        // do something with the data in response.body       
     },
     onError: { error in
         // do something with the error
@@ -148,7 +148,7 @@ networkHandler.request(
 )
 ```
 
-2. `request` using callback style returning model
+2. `request` using callback style returning `LynnCoreDecodedResponse<YourDecodableModel>`.
 
 ```swift
 networkHandler.request(
@@ -158,8 +158,8 @@ networkHandler.request(
     getValidUntil: { model in
         // return your can invalidation time here
     },
-    callback: { model in
-        // Do something with the model
+    callback: { response in
+        // Do something with the model in response.body
     },
     onError: { error in
         // Do something with the error
@@ -167,31 +167,31 @@ networkHandler.request(
 )
 ```
 
-3. `request` using async/await style returning data (macOS 10.15+, iOS 13+)
+3. `request` using async/await style returning `LynnCoreResponse` (macOS 10.15+, iOS 13+)
 
 ```swift
 Task {
     do {
-        let data = try await networkHandler
+        let response = try await networkHandler
             .request(
                 targetGroup: YourTargetGroup.target(parameter: 1),
                 getValidUntil: { data in
                     // return your can invalidation time here
                 }
             )
-        // Do something with the data
+        // Do something with the data in response.body
     } catch {
         // Do something with the error
     }
 }
 ```
 
-4. `request` using async/await style returning model (macOS 10.15+, iOS 13+)
+4. `request` using async/await style returning `LynnCoreDecodedResponse<YourDecodableModel>` (macOS 10.15+, iOS 13+)
 
 ```swift
 Task {
     do {
-        let model = try await networkHandler
+        let response = try await networkHandler
             .request(
                 targetGroup: YourTargetGroup.target(parameter: 1),
                 model: YourDecodableModel.self,
@@ -200,7 +200,7 @@ Task {
                     // return your can invalidation time here
                 }
             )
-        // Do something with the model
+        // Do something with the model in response.body
     } catch {
         // Do something with the error
     }

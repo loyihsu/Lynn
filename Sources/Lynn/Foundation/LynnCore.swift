@@ -11,11 +11,11 @@ public protocol LynnCore {
     @available(macOS 10.15, iOS 13.0, *)
     func sendRequest(
         to target: LynnTarget
-    ) async throws -> Data
+    ) async throws -> LynnCoreResponse
 
     func sendRequest(
         to target: LynnTarget,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void
     )
 }

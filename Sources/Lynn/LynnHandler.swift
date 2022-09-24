@@ -8,13 +8,13 @@
 import Foundation
 
 public class LynnHandler<Core: LynnCore> {
-
     // MARK: - Properties
 
     private let networkCore: Core
     private let storageManager: LynnStorageManager?
     private let maxRetries: Int
     private let responseMode: ResponseMode
+    private let jsonEncoder = JSONEncoder()
     private let jsonDecoder = JSONDecoder()
 
     // MARK: - Init
@@ -38,31 +38,41 @@ public class LynnHandler<Core: LynnCore> {
         model: Model.Type,
         keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase,
         getValidUntil: ((Model) -> Date)? = nil,
-        callback: @escaping (Model) -> Void,
+        callback: @escaping (LynnCoreDecodedResponse<Model>) -> Void,
         onError: @escaping (Error) -> Void
-    ) throws {
-        if let storedData = try cacheRoutine(targetGroup: targetGroup) {
-            do {
-                jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
-                callback(try jsonDecoder.decode(model, from: storedData))
-            } catch {
-                onError(error)
+    ) {
+        if let storedData = try? cacheRoutine(targetGroup: targetGroup) {
+            jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
+            if let decodedModel = try? jsonDecoder.decode(model, from: storedData.body) {
+                callback(
+                    LynnCoreDecodedResponse(
+                        statusCode: storedData.statusCode,
+                        header: storedData.header,
+                        body: decodedModel
+                    )
+                )
+                return
             }
-            return
         }
 
         let target = targetGroup.target
         requestRoutine(
             target: target,
-            callback: { [weak self] data in
+            callback: { [weak self] response in
                 guard let self = self else { return }
                 do {
                     self.jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
-                    let decoded = try self.jsonDecoder.decode(model, from: data)
+                    let decoded = try self.jsonDecoder.decode(model, from: response.body)
                     if let validUntil = getValidUntil?(decoded) {
-                        self.storeIfNeeded(targetGroup: targetGroup, data: data, validUntil: validUntil)
+                        self.storeIfNeeded(targetGroup: targetGroup, response: response, validUntil: validUntil)
                     }
-                    callback(decoded)
+                    callback(
+                        LynnCoreDecodedResponse(
+                            statusCode: response.statusCode,
+                            header: response.header,
+                            body: decoded
+                        )
+                    )
                 } catch {
                     onError(error)
                 }
@@ -74,21 +84,21 @@ public class LynnHandler<Core: LynnCore> {
     public func request<Group: TargetGroup>(
         targetGroup: Group,
         getValidUntil: ((Data) -> Date)? = nil,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void
-    ) throws {
-        if let cached = try cacheRoutine(targetGroup: targetGroup) {
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void
+    ) {
+        if let cached = try? cacheRoutine(targetGroup: targetGroup) {
             callback(cached)
         }
 
         let target = targetGroup.target
         requestRoutine(
             target: target,
-            callback: { [weak self] data in
-                if let validUntil = getValidUntil?(data) {
-                    self?.storeIfNeeded(targetGroup: targetGroup, data: data, validUntil: validUntil)
+            callback: { [weak self] lynnCoreData in
+                if let validUntil = getValidUntil?(lynnCoreData.body) {
+                    self?.storeIfNeeded(targetGroup: targetGroup, response: lynnCoreData, validUntil: validUntil)
                 }
-                callback(data)
+                callback(lynnCoreData)
             },
             onError: onError
         )
@@ -100,13 +110,15 @@ public class LynnHandler<Core: LynnCore> {
 
     private func cacheRoutine<Group: TargetGroup>(
         targetGroup: Group
-    ) throws -> Data? {
+    ) throws -> LynnCoreResponse? {
         switch responseMode {
         case .alwaysLive, .alwaysFail:
             return nil
         case .normal, .sample:
             if let storedData = try fetchFromStorageIfNeeded(targetGroup: targetGroup) {
-                return storedData
+                jsonDecoder.keyDecodingStrategy = .useDefaultKeys
+                let decodedData = try jsonDecoder.decode(LynnCoreResponse.self, from: storedData)
+                return decodedData
             } else {
                 return nil
             }
@@ -115,8 +127,8 @@ public class LynnHandler<Core: LynnCore> {
 
     private func requestRoutine(
         target: LynnTarget,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void
     ) {
         switch responseMode {
         case .alwaysLive, .normal:
@@ -127,9 +139,11 @@ public class LynnHandler<Core: LynnCore> {
             )
         case .sample:
             if let sampleData = target.sampleData {
-                callback(sampleData)
+                callback(
+                    LynnCoreResponse(statusCode: 200, header: [:], body: sampleData)
+                )
             } else {
-                onError(DebugError.noSampleData)
+                onError(LynnCoreError(statusCode: 404, header: [:], error: DebugError.noSampleData))
             }
         case .alwaysFail:
             onError(DebugError.failed)
@@ -140,9 +154,9 @@ public class LynnHandler<Core: LynnCore> {
 
     private func sendRequest(
         to target: LynnTarget,
-        callback: @escaping (Data) -> Void,
-        onError: @escaping (Error) -> Void,
-        error: Error? = nil,
+        callback: @escaping (LynnCoreResponse) -> Void,
+        onError: @escaping (LynnCoreError) -> Void,
+        error: LynnCoreError? = nil,
         currentRetry: Int = 0
     ) {
         guard currentRetry < maxRetries else {
@@ -168,11 +182,12 @@ public class LynnHandler<Core: LynnCore> {
 
     // MARK: Cache
 
-    private func storeIfNeeded(targetGroup: TargetGroup, data: Data, validUntil: Date) {
-        guard let storageManager = storageManager else { return }
+    private func storeIfNeeded(targetGroup: TargetGroup, response: LynnCoreResponse, validUntil: Date) {
+        guard let storageManager = storageManager,
+              let encodedResponse = try? jsonEncoder.encode(response) else { return }
         let storageData = LynnStorageData(
             validUntil: validUntil,
-            data: data
+            data: encodedResponse
         )
         storageManager.save(key: targetGroup.storageKey, value: storageData)
     }
@@ -198,70 +213,61 @@ public class LynnHandler<Core: LynnCore> {
 
 // MARK: - Async/Await API
 
-extension LynnHandler {
+public extension LynnHandler {
     @available(macOS 10.15, iOS 13.0, *)
-    public func request<Group: TargetGroup, Model: Decodable>(
+    func request<Group: TargetGroup, Model: Decodable>(
         targetGroup: Group,
         model: Model.Type,
         keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase,
         getValidUntil: ((Model) -> Date)? = nil
-    ) async throws -> Model {
+    ) async throws -> LynnCoreDecodedResponse<Model> {
         try await withCheckedThrowingContinuation { continuation in
-            do {
-                try request(
-                    targetGroup: targetGroup,
-                    model: model,
-                    keyDecodingStrategy: keyDecodingStrategy,
-                    getValidUntil: getValidUntil,
-                    callback: { model in
-                        continuation.resume(returning: model)
-                    },
-                    onError: { error in
-                        continuation.resume(throwing: error)
-                    }
-                )
-            } catch {
-                continuation.resume(throwing: error)
-            }
+            request(
+                targetGroup: targetGroup,
+                model: model,
+                keyDecodingStrategy: keyDecodingStrategy,
+                getValidUntil: getValidUntil,
+                callback: { response in
+                    continuation.resume(returning: response)
+                },
+                onError: { error in
+                    continuation.resume(throwing: error)
+                }
+            )
         }
     }
 
     @available(macOS 10.15, iOS 13.0, *)
-    public func request<Group: TargetGroup>(
+    func request<Group: TargetGroup>(
         targetGroup: Group,
         getValidUntil: ((Data) -> Date)? = nil
-    ) async throws -> Data {
+    ) async throws -> LynnCoreResponse {
         try await withCheckedThrowingContinuation { continuation in
-            do {
-                try request(
-                    targetGroup: targetGroup,
-                    getValidUntil: getValidUntil,
-                    callback: { data in
-                        continuation.resume(returning: data)
-                    },
-                    onError: { error in
-                        continuation.resume(throwing: error)
-                    }
-                )
-            } catch {
-                continuation.resume(throwing: error)
-            }
+            request(
+                targetGroup: targetGroup,
+                getValidUntil: getValidUntil,
+                callback: { data in
+                    continuation.resume(returning: data)
+                },
+                onError: { error in
+                    continuation.resume(throwing: error)
+                }
+            )
         }
     }
-
 }
 
 // MARK: - Responses
 
-extension LynnHandler {
-    public enum ResponseMode {
+public extension LynnHandler {
+    enum ResponseMode {
         case alwaysLive
         case alwaysFail
         case normal
         case sample
     }
 
-    public enum DebugError: LocalizedError {
+    enum DebugError: LocalizedError {
         case noSampleData
         case failed
 
