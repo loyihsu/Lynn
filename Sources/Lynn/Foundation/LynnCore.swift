@@ -21,11 +21,12 @@ public protocol LynnCore {
 }
 
 public struct LynnCoreResponse: Codable {
+    private var _header: Data?
+
     public var statusCode: Int
-    public var _header: Data?
     public var body: Data
 
-    var header: [String: Any]? {
+    public var header: [String: Any]? {
         guard let _header = _header else { return nil }
         return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
     }
@@ -40,11 +41,12 @@ public struct LynnCoreResponse: Codable {
 }
 
 public struct LynnCoreError: Error {
-    var statusCode: Int
-    var _header: Data?
-    var error: Error
+    private var _header: Data?
 
-    var header: [String: Any]? {
+    public var statusCode: Int
+    public var error: Error
+
+    public var header: [String: Any]? {
         guard let _header = _header else { return nil }
         return try? JSONSerialization.jsonObject(with: _header) as? [String: Any]
     }
