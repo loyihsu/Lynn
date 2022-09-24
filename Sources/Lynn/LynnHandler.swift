@@ -220,22 +220,18 @@ public extension LynnHandler {
         getValidUntil: ((Model) -> Date)? = nil
     ) async throws -> LynnCoreDecodedResponse<Model> {
         try await withCheckedThrowingContinuation { continuation in
-            do {
-                try request(
-                    targetGroup: targetGroup,
-                    model: model,
-                    keyDecodingStrategy: keyDecodingStrategy,
-                    getValidUntil: getValidUntil,
-                    callback: { response in
-                        continuation.resume(returning: response)
-                    },
-                    onError: { error in
-                        continuation.resume(throwing: error)
-                    }
-                )
-            } catch {
-                continuation.resume(throwing: error)
-            }
+            request(
+                targetGroup: targetGroup,
+                model: model,
+                keyDecodingStrategy: keyDecodingStrategy,
+                getValidUntil: getValidUntil,
+                callback: { response in
+                    continuation.resume(returning: response)
+                },
+                onError: { error in
+                    continuation.resume(throwing: error)
+                }
+            )
         }
     }
 
@@ -245,20 +241,16 @@ public extension LynnHandler {
         getValidUntil: ((Data) -> Date)? = nil
     ) async throws -> LynnCoreResponse {
         try await withCheckedThrowingContinuation { continuation in
-            do {
-                try request(
-                    targetGroup: targetGroup,
-                    getValidUntil: getValidUntil,
-                    callback: { data in
-                        continuation.resume(returning: data)
-                    },
-                    onError: { error in
-                        continuation.resume(throwing: error)
-                    }
-                )
-            } catch {
-                continuation.resume(throwing: error)
-            }
+            request(
+                targetGroup: targetGroup,
+                getValidUntil: getValidUntil,
+                callback: { data in
+                    continuation.resume(returning: data)
+                },
+                onError: { error in
+                    continuation.resume(throwing: error)
+                }
+            )
         }
     }
 }
