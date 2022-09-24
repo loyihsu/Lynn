@@ -63,7 +63,7 @@ public struct LynnCoreHeader: Codable, CustomStringConvertible {
 
     init(_ dictionary: [String: Any]?) {
         if let dictionary = dictionary {
-            self._header = try? JSONSerialization.data(withJSONObject: dictionary, options: [])
+            _header = try? JSONSerialization.data(withJSONObject: dictionary, options: [])
         }
     }
 
