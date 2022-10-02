@@ -146,7 +146,7 @@ public class LynnHandler<Core: LynnCore> {
                 onError(LynnCoreError(statusCode: 404, header: [:], error: DebugError.noSampleData))
             }
         case .alwaysFail:
-            onError(DebugError.failed)
+            onError(LynnCoreError(statusCode: 404, header: [:], error: DebugError.failed))
         }
     }
 
