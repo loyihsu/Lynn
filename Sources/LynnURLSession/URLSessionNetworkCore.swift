@@ -74,16 +74,16 @@ public class URLSessionNetworkCore: LynnCore {
                     header: response?.allHeaderFields as? [String: Any],
                     error: error
                 )
-                onError(lynnError)
                 watches.publish(lynnError)
+                onError(lynnError)
             } else if let data = data {
                 let response = LynnCoreResponse(
                     statusCode: response?.statusCode,
                     header: response?.allHeaderFields as? [String: Any],
                     body: data
                 )
-                callback(response)
                 watches.publish(response)
+                callback(response)
             }
         }
         task.resume()
