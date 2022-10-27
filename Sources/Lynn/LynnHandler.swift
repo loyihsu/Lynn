@@ -45,6 +45,8 @@ public class LynnHandler<Core: LynnCore> {
         callback: @escaping (LynnCoreDecodedResponse<Model>) -> Void,
         onError: @escaping (Error) -> Void
     ) {
+        guard maxRetries > 0 else { return }
+
         if let storedData = try? cacheRoutine(targetGroup: targetGroup) {
             jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
             if let decodedModel = try? jsonDecoder.decode(model, from: storedData.body) {
@@ -91,6 +93,8 @@ public class LynnHandler<Core: LynnCore> {
         callback: @escaping (LynnCoreResponse) -> Void,
         onError: @escaping (LynnCoreError) -> Void
     ) {
+        guard maxRetries > 0 else { return }
+
         if let cached = try? cacheRoutine(targetGroup: targetGroup) {
             callback(cached)
         }
