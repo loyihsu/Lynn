@@ -11,9 +11,9 @@ public struct LynnTarget {
     public let url: URL
     public let task: LynnTask
     public let headers: [String: String]?
-    public let sampleData: Data?
+    public let sampleData: LynnCoreResponse?
 
-    public init(url: URL, task: LynnTask, headers: [String: String]?, sampleData: Data?) {
+    public init(url: URL, task: LynnTask, headers: [String: String]?, sampleData: LynnCoreResponse?) {
         self.url = url
         self.task = task
         self.headers = headers

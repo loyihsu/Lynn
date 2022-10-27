@@ -143,9 +143,7 @@ public class LynnHandler<Core: LynnCore> {
             )
         case .sample:
             if let sampleData = target.sampleData {
-                callback(
-                    LynnCoreResponse(statusCode: 200, header: [:], body: sampleData)
-                )
+                callback(sampleData)
             } else {
                 onError(LynnCoreError(statusCode: 404, header: [:], error: DebugError.noSampleData))
             }
