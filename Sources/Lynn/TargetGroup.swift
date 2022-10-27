@@ -13,7 +13,7 @@ public protocol TargetGroup {
     var task: LynnTask { get }
     var headers: [String: String]? { get }
     var storageKey: String { get }
-    var sampleData: Data? { get }
+    var sampleData: LynnCoreResponse? { get }
 }
 
 extension TargetGroup {
