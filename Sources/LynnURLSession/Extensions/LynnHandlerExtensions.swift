@@ -12,13 +12,15 @@ public extension LynnHandler {
         core: Core = URLSessionNetworkCore(),
         storageManager: LynnStorageManager? = nil,
         maxRetries: Int = 3,
-        responseMode: ResponseMode = .normal
+        responseMode: ResponseMode = .normal,
+        watches: [LynnWatch] = []
     ) {
         self.init(
             networkCore: core,
             storageManager: storageManager,
             maxRetries: maxRetries,
-            responseMode: responseMode
+            responseMode: responseMode,
+            watches: watches
         )
     }
 }

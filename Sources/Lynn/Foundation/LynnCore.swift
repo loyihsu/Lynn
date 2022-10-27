@@ -10,12 +10,14 @@ import Foundation
 public protocol LynnCore {
     @available(macOS 10.15, iOS 13.0, *)
     func sendRequest(
-        to target: LynnTarget
+        to target: LynnTarget,
+        watches: [LynnWatch]
     ) async throws -> LynnCoreResponse
 
     func sendRequest(
         to target: LynnTarget,
         callback: @escaping (LynnCoreResponse) -> Void,
-        onError: @escaping (LynnCoreError) -> Void
+        onError: @escaping (LynnCoreError) -> Void,
+        watches: [LynnWatch]
     )
 }
