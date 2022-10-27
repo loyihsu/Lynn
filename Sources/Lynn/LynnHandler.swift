@@ -17,18 +17,22 @@ public class LynnHandler<Core: LynnCore> {
     private let jsonEncoder = JSONEncoder()
     private let jsonDecoder = JSONDecoder()
 
+    private let watches: [LynnWatch]
+
     // MARK: - Init
 
     public init(
         networkCore: Core,
         storageManager: LynnStorageManager? = nil,
         maxRetries: Int = 3,
-        responseMode: ResponseMode = .normal
+        responseMode: ResponseMode = .normal,
+        watches: [LynnWatch] = []
     ) {
         self.networkCore = networkCore
         self.storageManager = storageManager
         self.maxRetries = maxRetries
         self.responseMode = responseMode
+        self.watches = watches
     }
 
     // MARK: - APIs
@@ -176,7 +180,8 @@ public class LynnHandler<Core: LynnCore> {
                     error: error,
                     currentRetry: currentRetry + 1
                 )
-            }
+            },
+            watches: watches
         )
     }
 

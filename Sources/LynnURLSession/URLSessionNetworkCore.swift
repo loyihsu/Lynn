@@ -13,7 +13,8 @@ public class URLSessionNetworkCore: LynnCore {
 
     @available(macOS 10.15, iOS 13.0, *)
     public func sendRequest(
-        to target: LynnTarget
+        to target: LynnTarget,
+        watches: [LynnWatch]
     ) async throws -> LynnCoreResponse {
         try await withCheckedThrowingContinuation { continuation in
             sendRequest(
@@ -23,7 +24,8 @@ public class URLSessionNetworkCore: LynnCore {
                 },
                 onError: {
                     continuation.resume(throwing: $0)
-                }
+                },
+                watches: watches
             )
         }
     }
@@ -31,7 +33,8 @@ public class URLSessionNetworkCore: LynnCore {
     public func sendRequest(
         to target: LynnTarget,
         callback: @escaping (LynnCoreResponse) -> Void,
-        onError: @escaping (LynnCoreError) -> Void
+        onError: @escaping (LynnCoreError) -> Void,
+        watches: [LynnWatch]
     ) {
         let sessionConfig = URLSessionConfiguration.default
         let session = URLSession(configuration: sessionConfig, delegate: nil, delegateQueue: nil)
@@ -60,24 +63,27 @@ public class URLSessionNetworkCore: LynnCore {
             request.addValue($1, forHTTPHeaderField: $0)
         }
 
+        watches.publish(request)
+
         let task = session.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
             let response = response as? HTTPURLResponse
+
             if let error = error {
-                onError(
-                    LynnCoreError(
-                        statusCode: response?.statusCode,
-                        header: response?.allHeaderFields as? [String: Any],
-                        error: error
-                    )
+                let lynnError = LynnCoreError(
+                    statusCode: response?.statusCode,
+                    header: response?.allHeaderFields as? [String: Any],
+                    error: error
                 )
+                onError(lynnError)
+                watches.publish(lynnError)
             } else if let data = data {
-                callback(
-                    LynnCoreResponse(
-                        statusCode: response?.statusCode,
-                        header: response?.allHeaderFields as? [String: Any],
-                        body: data
-                    )
+                let response = LynnCoreResponse(
+                    statusCode: response?.statusCode,
+                    header: response?.allHeaderFields as? [String: Any],
+                    body: data
                 )
+                callback(response)
+                watches.publish(response)
             }
         }
         task.resume()
