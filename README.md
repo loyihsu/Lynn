@@ -1,6 +1,6 @@
 # Lynn
 
-![Overview](https://i.imgur.com/zlB49UL.png)
+![Overview][image-1]
 
 Lynn is a [Moya][1]-inspired flexible network abstraction layer. With the core and storage manager protocol, it can be based on any network packages and storage technology.
 
@@ -65,11 +65,14 @@ extension SomeTargetGroup: TargetGroup {
         // This is the storage key used if you are using the cache system. Ex. 'someCase'
     }
 
-    var sampleData: Data? {
+    var sampleData: LynnCoreResponse? {
         // Provide any sample data if you want to use the `.sample` response mode.
+        // This getter takes a LynnCoreResponse that consists of status code, header and body.
     }
 }
 ```
+
+An `HTTPBody` can use `.json` mode or `.urlEncoded` mode, based on what the server expectations.
 
 ## `LynnHandler`
 
@@ -110,6 +113,8 @@ let networkHandler = LynnHandler(
     maxRetries: 5
 )
 ```
+
+Notice, when your max retries go below 0, your request will be blocked and ignored.
 
 You can also specify the response mode here, there are multiple response modes defined:
 
@@ -212,7 +217,7 @@ Task {
 To use the cache system, add you would need to provide:
 
 1. A storage manager instance
-2. `getValidUntil` when making a request request
+2. `getValidUntil` when making a request
 
 A storage manager can implement either one of `LynnItemStorageManager` or `LynnListStorageManager`, depending on whether you want to store an item or a list of items. Implementations for either an item or a list using `UserDefaults` are provided:
 
@@ -230,9 +235,37 @@ let networkHandler = LynnHandler(
 )
 ```
 
+## Logging
+
+Lynn provides logging support through `LynnWatch`. You can implement a `LynnWatch` that will be notified when Lynn is about to send a request or when Lynn receives a response. For instance,
+
+```swift
+struct ConsolePrinterWatch: LynnWatch {
+    func willSend(_ request: URLRequest) {
+        // print your log to console for requests
+    }
+
+    func didReceive(_ response: Result<Lynn.LynnCoreResponse, Lynn.LynnCoreError>) {
+        // print your log to console for responses
+    }
+}
+```
+
+Then you register the watch to your `LynnHandler` like,
+
+```swift
+let networkHandler = LynnHandler(
+    watches: [ConsolePrinterWatch()]
+)
+```
+
+Then your watch will be notified during a request-response life cycle. Notice, watches live inside a `LynnHandler` instance; thus, you will need to register multiple times if you have more than one `LynnHandler` instances running.
+
 ## License
 
 [MIT][2]
 
 [1]:	https://github.com/Moya/Moya
 [2]:	https://github.com/loyihsu/Lynn/blob/main/LICENSE
+
+[image-1]:	https://i.imgur.com/zlB49UL.png
